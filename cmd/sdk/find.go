@@ -92,11 +92,11 @@ func (c *CmdFind) Run(cmd *cobra.Command, av []string) error {
 	esc := c.GetEscapes()
 	w := tabwriter.NewWriter(Stdout, 4, 3, 2, ' ', tabwriter.StripEscape)
 	if !c.noHeaders {
-		fmt.Fprintln(w, "NAME\tVERSION\tPUBLISHER\tSUMMARY")
+		fmt.Fprintf(w, "NAME\tVERSION\tPUBLISHER%s\tSUMMARY\n", fillerEscape(esc))
 	}
 	for _, sdk := range sdks {
 		version := cmdutil.EmptyDash(sdk.Version)
-		publisher := "-"
+		publisher := "-" + fillerEscape(esc)
 		if sdk.Publisher != nil {
 			publisher = shortPublisher(sdk.Publisher, esc)
 		}
@@ -106,6 +106,12 @@ func (c *CmdFind) Run(cmd *cobra.Command, av []string) error {
 	return w.Flush()
 }
 
+// fillerEscape is used to add an no-op escape sequence to a table row in a
+// tabwriter table, so that things line up.
+func fillerEscape(esc *cmdutil.Escapes) string {
+	return esc.Green + esc.End
+}
+
 func shortPublisher(publisher *client.StoreAccount, esc *cmdutil.Escapes) string {
 	var badge string
 	switch publisher.Validation {
@@ -113,6 +119,8 @@ func shortPublisher(publisher *client.StoreAccount, esc *cmdutil.Escapes) string
 		badge = esc.Green + esc.Tick + esc.End
 	case "starred":
 		badge = esc.BrightYellow + esc.Star + esc.End
+	default:
+		badge = fillerEscape(esc) // no-op for output alignment
 	}
 	return publisher.DisplayName + badge
 }
